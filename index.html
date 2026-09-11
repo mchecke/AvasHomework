@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assignment Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFE3F0;
+    --bg-deep: #FFD1E6;
+    --card: #FFFFFF;
+    --hot: #FF2E93;
+    --hot-dark: #D6127A;
+    --plum: #6E1148;
+    --plum-soft: #9C3A72;
+    --amber: #FFB020;
+    --amber-dark: #C97A00;
+    --teal: #00BFA0;
+    --teal-dark: #00806A;
+    --line: #FFC1DD;
+    --shadow: 0 8px 24px rgba(110, 17, 72, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+    font-family: 'Inter', sans-serif;
+    color: var(--plum);
+    min-height: 100vh;
+  }
+
+  .wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  header {
+    margin-bottom: 36px;
+  }
+
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .kicker {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    color: var(--hot-dark);
+    font-size: 15px;
+    margin: 0 0 6px;
+  }
+
+  .nav-link {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--hot-dark);
+    text-decoration: none;
+    padding: 6px 14px;
+    border: 2px solid var(--hot);
+    border-radius: 999px;
+    margin-bottom: 6px;
+  }
+
+  .nav-link:hover {
+    background: var(--hot);
+    color: white;
+  }
+
+  h1 {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: clamp(32px, 6vw, 48px);
+    line-height: 1.05;
+    margin: 0 0 16px;
+    color: var(--plum);
+  }
+
+  .next-up {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 20px 24px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border: 2px solid var(--hot);
+  }
+
+  .next-up .pill {
+    background: var(--hot);
+    color: white;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .next-up .detail {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .next-up .detail strong {
+    display: block;
+    font-size: 16px;
+    color: var(--plum);
+  }
+
+  .next-up .detail span {
+    font-size: 14px;
+    color: var(--plum-soft);
+  }
+
+  .empty-state {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px 24px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+
+  .empty-state p {
+    margin: 0;
+    font-size: 16px;
+    color: var(--plum-soft);
+  }
+
+  .filters {
+    display: flex;
+    gap: 8px;
+    margin: 32px 0 24px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 9px 18px;
+    border-radius: 999px;
+    border: 2px solid var(--line);
+    background: transparent;
+    color: var(--plum-soft);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .filter-btn:hover {
+    border-color: var(--hot);
+  }
+
+  .filter-btn.active {
+    background: var(--plum);
+    border-color: var(--plum);
+    color: white;
+  }
+
+  .course-group {
+    margin-bottom: 28px;
+  }
+
+  .course-name {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--hot-dark);
+    margin: 0 0 10px 4px;
+  }
+
+  .assignment {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(110, 17, 72, 0.06);
+    border-left: 6px solid var(--line);
+    transition: transform 0.12s ease;
+  }
+
+  .assignment:hover {
+    transform: translateX(2px);
+  }
+
+  .assignment.status-overdue { border-left-color: var(--hot); }
+  .assignment.status-soon { border-left-color: var(--amber); }
+  .assignment.status-later { border-left-color: var(--teal); }
+  .assignment.status-done {
+    border-left-color: var(--line);
+    opacity: 0.55;
+  }
+
+  .assignment.status-done .title {
+    text-decoration: line-through;
+  }
+
+  .check {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: white;
+    font-size: 14px;
+    color: white;
+    user-select: none;
+  }
+
+  .assignment.status-done .check {
+    background: var(--teal);
+    border-color: var(--teal);
+  }
+
+  .info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--plum);
+    margin: 0 0 2px;
+    overflow-wrap: break-word;
+  }
+
+  .due {
+    font-size: 13px;
+    color: var(--plum-soft);
+  }
+
+  .badge {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .badge.status-overdue { background: #FFE1EE; color: var(--hot-dark); }
+  .badge.status-soon { background: #FFF1D6; color: var(--amber-dark); }
+  .badge.status-later { background: #D8F7F0; color: var(--teal-dark); }
+  .badge.status-done { background: #F1F1F1; color: #999; }
+
+  footer {
+    text-align: center;
+    margin-top: 48px;
+    font-size: 13px;
+    color: var(--plum-soft);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="top-row">
+        <p class="kicker">Assignment Tracker</p>
+        <a class="nav-link" href="update.html">Update data →</a>
+      </div>
+      <h1>What's due, and when.</h1>
+      <div id="nextUpSlot"></div>
+    </header>
+
+    <div class="filters" id="filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="overdue">Overdue</button>
+      <button class="filter-btn" data-filter="soon">Due soon</button>
+      <button class="filter-btn" data-filter="done">Done</button>
+    </div>
+
+    <div id="list"></div>
+
+    <footer>Reads from assignments.json &middot; edit that file to update what shows up here</footer>
+  </div>
+
+<script>
+// Fallback sample data — used only if assignments.json can't be fetched
+// (e.g. opening this file directly instead of via GitHub Pages / a local server).
+const SAMPLE_DATA = [
+  { course: "CS 18000", title: "Homework 4: Recursion", due: "2026-09-12T23:59:00", done: false },
+  { course: "CS 18000", title: "Project 2 Checkpoint", due: "2026-09-20T23:59:00", done: false },
+  { course: "MA 16200", title: "WebAssign Set 7", due: "2026-09-11T23:59:00", done: false },
+  { course: "MA 16200", title: "WebAssign Set 6", due: "2026-09-05T23:59:00", done: true },
+  { course: "ENGL 10600", title: "Draft 2: Rhetorical Analysis", due: "2026-09-25T23:59:00", done: false },
+  { course: "COM 11400", title: "Speech Outline", due: "2026-09-08T23:59:00", done: false }
+];
+
+function daysUntil(dateStr) {
+  const now = new Date();
+  const due = new Date(dateStr);
+  return (due - now) / (1000 * 60 * 60 * 24);
+}
+
+function getStatus(item) {
+  if (item.done) return "done";
+  const d = daysUntil(item.due);
+  if (d < 0) return "overdue";
+  if (d <= 3) return "soon";
+  return "later";
+}
+
+function statusLabel(status, item) {
+  const d = Math.ceil(daysUntil(item.due));
+  if (status === "done") return "Done";
+  if (status === "overdue") return `${Math.abs(d)}d overdue`;
+  if (d === 0) return "Due today";
+  if (d === 1) return "Due tomorrow";
+  return `Due in ${d}d`;
+}
+
+function formatDue(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) +
+    ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+let data = [];
+let currentFilter = "all";
+
+function render() {
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+
+  const filtered = data.filter(item => {
+    const status = getStatus(item);
+    if (currentFilter === 'all') return true;
+    if (currentFilter === 'done') return status === 'done';
+    if (currentFilter === 'overdue') return status === 'overdue';
+    if (currentFilter === 'soon') return status === 'soon' || status === 'overdue';
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.innerHTML = '<p>Nothing here. Nice.</p>';
+    list.appendChild(empty);
+    renderNextUp();
+    return;
+  }
+
+  const byCourse = {};
+  filtered.forEach(item => {
+    if (!byCourse[item.course]) byCourse[item.course] = [];
+    byCourse[item.course].push(item);
+  });
+
+  Object.keys(byCourse).sort().forEach(course => {
+    const group = document.createElement('div');
+    group.className = 'course-group';
+
+    const heading = document.createElement('p');
+    heading.className = 'course-name';
+    heading.textContent = course;
+    group.appendChild(heading);
+
+    byCourse[course]
+      .sort((a, b) => new Date(a.due) - new Date(b.due))
+      .forEach(item => {
+        const status = getStatus(item);
+        const row = document.createElement('div');
+        row.className = `assignment status-${status}`;
+
+        row.innerHTML = `
+          <div class="check">${item.done ? '✓' : ''}</div>
+          <div class="info">
+            <p class="title">${escapeHtml(item.title)}</p>
+            <p class="due">${formatDue(item.due)}</p>
+          </div>
+          <span class="badge status-${status}">${statusLabel(status, item)}</span>
+        `;
+
+        row.querySelector('.check').addEventListener('click', () => {
+          item.done = !item.done;
+          render();
+        });
+
+        group.appendChild(row);
+      });
+
+    list.appendChild(group);
+  });
+
+  renderNextUp();
+}
+
+function renderNextUp() {
+  const slot = document.getElementById('nextUpSlot');
+  const upcoming = data
+    .filter(item => !item.done)
+    .sort((a, b) => new Date(a.due) - new Date(b.due))[0];
+
+  if (!upcoming) {
+    slot.innerHTML = '';
+    return;
+  }
+
+  const status = getStatus(upcoming);
+  slot.innerHTML = `
+    <div class="next-up">
+      <span class="pill">Next up</span>
+      <div class="detail">
+        <strong>${escapeHtml(upcoming.title)}</strong>
+        <span>${escapeHtml(upcoming.course)} &middot; ${formatDue(upcoming.due)}</span>
+      </div>
+      <span class="badge status-${status}">${statusLabel(status, upcoming)}</span>
+    </div>
+  `;
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+document.getElementById('filters').addEventListener('click', (e) => {
+  if (!e.target.classList.contains('filter-btn')) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  currentFilter = e.target.dataset.filter;
+  render();
+});
+
+const STORAGE_KEY = 'assignment_tracker_data';
+
+function loadData() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      data = JSON.parse(saved);
+      render();
+      return;
+    } catch (e) {
+      // fall through to file/sample data if saved JSON is somehow broken
+    }
+  }
+
+  fetch('assignments.json')
+    .then(res => {
+      if (!res.ok) throw new Error('no file');
+      return res.json();
+    })
+    .then(json => {
+      data = json;
+      render();
+    })
+    .catch(() => {
+      data = SAMPLE_DATA;
+      render();
+    });
+}
+
+loadData();
+</script>
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Update Data — Assignment Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root {
+    --bg: #FFE3F0;
+    --bg-deep: #FFD1E6;
+    --card: #FFFFFF;
+    --hot: #FF2E93;
+    --hot-dark: #D6127A;
+    --plum: #6E1148;
+    --plum-soft: #9C3A72;
+    --teal-dark: #00806A;
+    --line: #FFC1DD;
+    --shadow: 0 8px 24px rgba(110, 17, 72, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+    font-family: 'Inter', sans-serif;
+    color: var(--plum);
+    min-height: 100vh;
+  }
+
+  .hidden { display: none !important; }
+
+  #loginScreen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+
+  .login-card { background: var(--card); border-radius: 20px; padding: 36px 32px; box-shadow: var(--shadow); max-width: 360px; width: 100%; }
+  .login-card h1 { font-family: 'Fredoka', sans-serif; font-size: 24px; margin: 0 0 6px; }
+  .login-card p { font-size: 14px; color: var(--plum-soft); margin: 0 0 22px; }
+
+  .login-card input {
+    width: 100%; padding: 12px 14px; border: 2px solid var(--line); border-radius: 10px;
+    font-size: 14px; margin-bottom: 12px; font-family: 'Inter', sans-serif;
+  }
+  .login-card input:focus { outline: none; border-color: var(--hot); }
+
+  .login-card button {
+    width: 100%; background: var(--hot); color: white; border: none; padding: 13px;
+    border-radius: 999px; font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 15px; cursor: pointer;
+  }
+  .login-card button:hover { background: var(--hot-dark); }
+  .login-error { color: var(--hot-dark); font-size: 13px; margin-top: 10px; min-height: 16px; }
+
+  .wrap { max-width: 780px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  .top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .kicker { font-family: 'Fredoka', sans-serif; font-weight: 600; color: var(--hot-dark); font-size: 15px; margin: 0 0 6px; }
+  .nav-links { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  .nav-link {
+    font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 14px; color: var(--hot-dark);
+    text-decoration: none; padding: 6px 14px; border: 2px solid var(--hot); border-radius: 999px; margin-bottom: 6px;
+  }
+  .nav-link:hover { background: var(--hot); color: white; }
+
+  #signOutBtn {
+    background: transparent; border: 2px solid var(--line); color: var(--plum-soft);
+    font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 13px; padding: 6px 14px;
+    border-radius: 999px; cursor: pointer; margin-bottom: 6px;
+  }
+  #signOutBtn:hover { border-color: var(--plum-soft); }
+
+  h1 { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: clamp(28px, 5vw, 40px); line-height: 1.1; margin: 0 0 8px; color: var(--plum); }
+  .subtext { font-size: 15px; color: var(--plum-soft); margin: 0 0 28px; max-width: 60ch; }
+  .subtext code { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 13px; }
+
+  .panel { background: var(--card); border-radius: 20px; padding: 24px; box-shadow: var(--shadow); margin-bottom: 20px; }
+  .panel h2 { font-family: 'Fredoka', sans-serif; font-size: 16px; margin: 0 0 12px; color: var(--plum); }
+
+  textarea {
+    width: 100%; min-height: 220px; border: 2px solid var(--line); border-radius: 12px; padding: 14px;
+    font-family: 'Menlo', 'Consolas', monospace; font-size: 13px; color: var(--plum); resize: vertical; background: #FFFAFC;
+  }
+  textarea:focus { outline: none; border-color: var(--hot); }
+
+  .actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+
+  button.action-btn {
+    font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 14px; padding: 11px 20px;
+    border-radius: 999px; border: none; cursor: pointer;
+  }
+  .btn-primary { background: var(--hot); color: white; }
+  .btn-primary:hover { background: var(--hot-dark); }
+  .btn-secondary { background: transparent; color: var(--plum-soft); border: 2px solid var(--line); }
+  .btn-secondary:hover { border-color: var(--plum-soft); }
+
+  .message { margin-top: 14px; padding: 12px 16px; border-radius: 12px; font-size: 14px; font-weight: 500; display: none; }
+  .message.show { display: block; }
+  .message.success { background: #D8F7F0; color: var(--teal-dark); }
+  .message.error { background: #FFE1EE; color: var(--hot-dark); }
+
+  .format-example {
+    font-family: 'Menlo', 'Consolas', monospace; font-size: 12.5px; background: #FFFAFC; border: 1px solid var(--line);
+    border-radius: 10px; padding: 14px; white-space: pre; overflow-x: auto; color: var(--plum-soft);
+  }
+</style>
+</head>
+<body>
+
+  <div id="loginScreen">
+    <div class="login-card">
+      <h1>Assignment Tracker</h1>
+      <p>Sign in to update data.</p>
+      <form id="loginForm">
+        <input type="email" id="loginEmail" placeholder="Email" required autocomplete="username">
+        <input type="password" id="loginPassword" placeholder="Password" required autocomplete="current-password">
+        <button type="submit">Sign in</button>
+        <div class="login-error" id="loginError"></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="appContent" class="hidden">
+    <div class="wrap">
+      <div class="top-row">
+        <p class="kicker">Assignment Tracker</p>
+        <div class="nav-links">
+          <a class="nav-link" href="index.html">← Due dates</a>
+          <a class="nav-link" href="classes.html">Classes & grades</a>
+          <button id="signOutBtn">Sign out</button>
+        </div>
+      </div>
+      <h1>Update your data</h1>
+      <p class="subtext">
+        Paste assignment JSON below and save it — this writes straight to
+        Firestore, so it updates <code>index.html</code> and
+        <code>classes.html</code> live, on every device, immediately.
+        This replaces the entire assignment list with what you paste here.
+      </p>
+
+      <div class="panel">
+        <h2>Paste assignments JSON here</h2>
+        <textarea id="jsonInput" spellcheck="false" placeholder='[
+  { "course": "CS 18000", "title": "Homework 4", "due": "2026-09-12T23:59:00", "done": false }
+]'></textarea>
+        <div class="actions">
+          <button class="action-btn btn-primary" id="saveBtn">Save to Firestore</button>
+          <button class="action-btn btn-secondary" id="loadCurrentBtn">Load what's currently there</button>
+        </div>
+        <div class="message" id="message"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Expected format</h2>
+        <div class="format-example">[
+  {
+    "course": "CS 18000",
+    "title": "Homework 4: Recursion",
+    "due": "2026-09-12T23:59:00",
+    "done": false
+  }
+]</div>
+      </div>
+    </div>
+  </div>
+
+<script src="firebase-init.js"></script>
+<script>
+const textarea = document.getElementById('jsonInput');
+const message = document.getElementById('message');
+
+function showMessage(text, type) {
+  message.textContent = text;
+  message.className = `message show ${type}`;
+}
+
+function validate(json) {
+  if (!Array.isArray(json)) return 'Top level should be a list (starts with [ ... ]).';
+  for (let i = 0; i < json.length; i++) {
+    const item = json[i];
+    if (typeof item !== 'object' || item === null) return `Item ${i + 1} isn't an object.`;
+    if (!item.course || typeof item.course !== 'string') return `Item ${i + 1} is missing a "course" (text).`;
+    if (!item.title || typeof item.title !== 'string') return `Item ${i + 1} is missing a "title" (text).`;
+    if (!item.due || isNaN(new Date(item.due).getTime())) return `Item ${i + 1} has a missing or unreadable "due" date.`;
+  }
+  return null;
+}
+
+async function saveToFirestore(parsed) {
+  const collectionRef = db.collection('assignments');
+  const existing = await collectionRef.get();
+  const batch = db.batch();
+  existing.docs.forEach(doc => batch.delete(doc.ref));
+  parsed.forEach(item => {
+    const docRef = collectionRef.doc();
+    batch.set(docRef, { course: item.course, title: item.title, due: item.due, done: !!item.done });
+  });
+  await batch.commit();
+}
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const raw = textarea.value.trim();
+  if (!raw) { showMessage('Paste some JSON first.', 'error'); return; }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    showMessage(`That's not valid JSON: ${e.message}`, 'error');
+    return;
+  }
+
+  const problem = validate(parsed);
+  if (problem) { showMessage(problem, 'error'); return; }
+
+  try {
+    await saveToFirestore(parsed);
+    showMessage(`Saved ${parsed.length} assignment${parsed.length === 1 ? '' : 's'} to Firestore. Updated everywhere now.`, 'success');
+  } catch (e) {
+    showMessage(`Couldn't save: ${e.message}`, 'error');
+  }
+});
+
+document.getElementById('loadCurrentBtn').addEventListener('click', async () => {
+  const snapshot = await db.collection('assignments').get();
+  const current = snapshot.docs.map(doc => {
+    const d = doc.data();
+    return { course: d.course, title: d.title, due: d.due, done: d.done || false };
+  });
+  textarea.value = JSON.stringify(current, null, 2);
+  showMessage(`Loaded ${current.length} current assignment${current.length === 1 ? '' : 's'}.`, 'success');
+});
+
+initAuthGate(() => {});
+</script>
+</body>
+</html>

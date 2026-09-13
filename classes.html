@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Classes — Assignment Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root {
+    --bg: #FFE3F0;
+    --bg-deep: #FFD1E6;
+    --card: #FFFFFF;
+    --hot: #FF2E93;
+    --hot-dark: #D6127A;
+    --plum: #6E1148;
+    --plum-soft: #9C3A72;
+    --amber: #FFB020;
+    --amber-dark: #C97A00;
+    --teal: #00BFA0;
+    --teal-dark: #00806A;
+    --line: #FFC1DD;
+    --shadow: 0 8px 24px rgba(110, 17, 72, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+    font-family: 'Inter', sans-serif;
+    color: var(--plum);
+    min-height: 100vh;
+  }
+
+  .hidden { display: none !important; }
+
+  #loginScreen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .login-card {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 36px 32px;
+    box-shadow: var(--shadow);
+    max-width: 360px;
+    width: 100%;
+  }
+
+  .login-card h1 { font-family: 'Fredoka', sans-serif; font-size: 24px; margin: 0 0 6px; }
+  .login-card p { font-size: 14px; color: var(--plum-soft); margin: 0 0 22px; }
+
+  .login-card input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    font-size: 14px;
+    margin-bottom: 12px;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .login-card input:focus { outline: none; border-color: var(--hot); }
+
+  .login-card button {
+    width: 100%;
+    background: var(--hot);
+    color: white;
+    border: none;
+    padding: 13px;
+    border-radius: 999px;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .login-card button:hover { background: var(--hot-dark); }
+
+  .login-error { color: var(--hot-dark); font-size: 13px; margin-top: 10px; min-height: 16px; }
+
+  .wrap { max-width: 780px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .kicker { font-family: 'Fredoka', sans-serif; font-weight: 600; color: var(--hot-dark); font-size: 15px; margin: 0 0 6px; }
+  .nav-links { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  .nav-link {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--hot-dark);
+    text-decoration: none;
+    padding: 6px 14px;
+    border: 2px solid var(--hot);
+    border-radius: 999px;
+    margin-bottom: 6px;
+  }
+
+  .nav-link:hover { background: var(--hot); color: white; }
+
+  #signOutBtn {
+    background: transparent;
+    border: 2px solid var(--line);
+    color: var(--plum-soft);
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    margin-bottom: 6px;
+  }
+
+  #signOutBtn:hover { border-color: var(--plum-soft); }
+
+  h1 {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: clamp(32px, 6vw, 48px);
+    line-height: 1.05;
+    margin: 0 0 28px;
+    color: var(--plum);
+  }
+
+  .class-card { background: var(--card); border-radius: 20px; padding: 22px 24px; box-shadow: var(--shadow); margin-bottom: 22px; }
+  .class-name { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 20px; color: var(--plum); margin: 0 0 16px; }
+  .section-label { font-family: 'Fredoka', sans-serif; font-weight: 600; font-size: 12px; color: var(--hot-dark); margin: 0 0 8px; }
+
+  .assignment-row, .grade-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .assignment-row:last-child, .grade-row:last-child { border-bottom: none; }
+  .assignment-row .a-title { font-size: 14px; font-weight: 600; color: var(--plum); }
+  .assignment-row .a-due { font-size: 12.5px; color: var(--plum-soft); }
+  .assignment-row.done .a-title { text-decoration: line-through; opacity: 0.6; }
+
+  .badge {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .badge.status-overdue { background: #FFE1EE; color: var(--hot-dark); }
+  .badge.status-soon, .badge.status-today { background: #FFF1D6; color: var(--amber-dark); }
+  .badge.status-later { background: #D8F7F0; color: var(--teal-dark); }
+  .badge.status-done { background: #F1F1F1; color: #999; }
+
+  .grade-row .g-item { font-size: 14px; font-weight: 600; color: var(--plum); }
+  .grade-row .g-score {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--hot-dark);
+    background: #FFE1EE;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+
+  .divider { height: 1px; background: var(--line); margin: 16px 0; }
+  .empty-note { font-size: 13px; color: var(--plum-soft); font-style: italic; }
+
+  .empty-state { background: var(--card); border-radius: 20px; padding: 32px 24px; text-align: center; box-shadow: var(--shadow); }
+  .empty-state p { margin: 0; font-size: 16px; color: var(--plum-soft); }
+</style>
+</head>
+<body>
+
+  <div id="loginScreen">
+    <div class="login-card">
+      <h1>Assignment Tracker</h1>
+      <p>Sign in to see what's due.</p>
+      <form id="loginForm">
+        <input type="email" id="loginEmail" placeholder="Email" required autocomplete="username">
+        <input type="password" id="loginPassword" placeholder="Password" required autocomplete="current-password">
+        <button type="submit">Sign in</button>
+        <div class="login-error" id="loginError"></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="appContent" class="hidden">
+    <div class="wrap">
+      <div class="top-row">
+        <p class="kicker">Assignment Tracker</p>
+        <div class="nav-links">
+          <a class="nav-link" href="index.html">← Due dates</a>
+          <button id="signOutBtn">Sign out</button>
+        </div>
+      </div>
+      <h1>By class.</h1>
+      <div id="list"></div>
+    </div>
+  </div>
+
+<script src="firebase-init.js"></script>
+<script>
+let assignments = [];
+let grades = [];
+let unsubAssignments = null;
+let unsubGrades = null;
+
+function daysUntil(dateStr) { return (new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24); }
+
+function getStatus(item) {
+  if (item.done) return "done";
+  const d = daysUntil(item.due);
+  if (d < 0) return "overdue";
+  if (d < 1) return "today";
+  if (d <= 3) return "soon";
+  return "later";
+}
+
+function statusLabel(status, item) {
+  const d = Math.ceil(daysUntil(item.due));
+  if (status === "done") return "Done";
+  if (status === "overdue") return `${Math.abs(d)}d overdue`;
+  if (status === "today") return "Today";
+  if (d === 1) return "Tomorrow";
+  return `${d}d`;
+}
+
+function formatDue(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function render() {
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+
+  const courses = new Set([...assignments.map(a => a.course), ...grades.map(g => g.course)]);
+
+  if (courses.size === 0) {
+    list.innerHTML = '<div class="empty-state"><p>No classes yet.</p></div>';
+    return;
+  }
+
+  Array.from(courses).sort().forEach(course => {
+    const card = document.createElement('div');
+    card.className = 'class-card';
+
+    const courseAssignments = assignments.filter(a => a.course === course)
+      .sort((a, b) => new Date(a.due) - new Date(b.due));
+    const courseGrades = grades.filter(g => g.course === course);
+
+    let assignmentsHtml = '<p class="empty-note">No assignments on file.</p>';
+    if (courseAssignments.length > 0) {
+      assignmentsHtml = courseAssignments.map(a => {
+        const status = getStatus(a);
+        return `
+          <div class="assignment-row ${status === 'done' ? 'done' : ''}">
+            <div>
+              <p class="a-title">${escapeHtml(a.title)}</p>
+              <p class="a-due">${formatDue(a.due)}</p>
+            </div>
+            <span class="badge status-${status}">${statusLabel(status, a)}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    let gradesHtml = '<p class="empty-note">No grades on file.</p>';
+    if (courseGrades.length > 0) {
+      gradesHtml = courseGrades.map(g => `
+        <div class="grade-row">
+          <span class="g-item">${escapeHtml(g.item)}</span>
+          <span class="g-score">${escapeHtml(g.score)}</span>
+        </div>
+      `).join('');
+    }
+
+    card.innerHTML = `
+      <p class="class-name">${escapeHtml(course)}</p>
+      <p class="section-label">Assignments</p>
+      ${assignmentsHtml}
+      <div class="divider"></div>
+      <p class="section-label">Grades</p>
+      ${gradesHtml}
+    `;
+
+    list.appendChild(card);
+  });
+}
+
+function startListeners() {
+  if (unsubAssignments) unsubAssignments();
+  if (unsubGrades) unsubGrades();
+
+  unsubAssignments = db.collection('assignments').onSnapshot(snapshot => {
+    assignments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    render();
+  });
+
+  unsubGrades = db.collection('grades').onSnapshot(snapshot => {
+    grades = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    render();
+  });
+}
+
+initAuthGate(startListeners);
+</script>
+</body>
+</html>

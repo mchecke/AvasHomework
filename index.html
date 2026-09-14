@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assignment Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root {
+    --bg: #FFE3F0;
+    --bg-deep: #FFD1E6;
+    --card: #FFFFFF;
+    --hot: #FF2E93;
+    --hot-dark: #D6127A;
+    --plum: #6E1148;
+    --plum-soft: #9C3A72;
+    --amber: #FFB020;
+    --amber-dark: #C97A00;
+    --teal: #00BFA0;
+    --teal-dark: #00806A;
+    --line: #FFC1DD;
+    --shadow: 0 8px 24px rgba(110, 17, 72, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+    font-family: 'Inter', sans-serif;
+    color: var(--plum);
+    min-height: 100vh;
+    position: relative;
+  }
+
+  .hidden { display: none !important; }
+
+  /* Login screen */
+  #loginScreen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .login-card {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 36px 32px;
+    box-shadow: var(--shadow);
+    max-width: 360px;
+    width: 100%;
+  }
+
+  .login-card h1 {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 24px;
+    margin: 0 0 6px;
+  }
+
+  .login-card p {
+    font-size: 14px;
+    color: var(--plum-soft);
+    margin: 0 0 22px;
+  }
+
+  .login-card input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid var(--line);
+    border-radius: 10px;
+    font-size: 14px;
+    margin-bottom: 12px;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .login-card input:focus { outline: none; border-color: var(--hot); }
+
+  .login-card button {
+    width: 100%;
+    background: var(--hot);
+    color: white;
+    border: none;
+    padding: 13px;
+    border-radius: 999px;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .login-card button:hover { background: var(--hot-dark); }
+
+  .login-error {
+    color: var(--hot-dark);
+    font-size: 13px;
+    margin-top: 10px;
+    min-height: 16px;
+  }
+
+  /* Main app */
+  .wrap { max-width: 780px; margin: 0 auto; padding: 48px 24px 100px; }
+
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .kicker {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    color: var(--hot-dark);
+    font-size: 15px;
+    margin: 0 0 6px;
+  }
+
+  .nav-links { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  .nav-link {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--hot-dark);
+    text-decoration: none;
+    padding: 6px 14px;
+    border: 2px solid var(--hot);
+    border-radius: 999px;
+    margin-bottom: 6px;
+  }
+
+  .nav-link:hover { background: var(--hot); color: white; }
+
+  #signOutBtn {
+    background: transparent;
+    border: 2px solid var(--line);
+    color: var(--plum-soft);
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    margin-bottom: 6px;
+  }
+
+  #signOutBtn:hover { border-color: var(--plum-soft); }
+
+  h1 {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: clamp(32px, 6vw, 48px);
+    line-height: 1.05;
+    margin: 0 0 14px;
+    color: var(--plum);
+  }
+
+  .freshness {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--plum-soft);
+    margin-bottom: 20px;
+  }
+
+  .freshness.stale { font-size: 17px; font-weight: 700; color: var(--hot-dark); }
+
+  @keyframes stalePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+  .freshness.stale .freshness-dot { animation: stalePulse 1.4s ease-in-out infinite; }
+
+  .freshness-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); flex-shrink: 0; }
+  .freshness.stale .freshness-dot { background: var(--hot); width: 11px; height: 11px; }
+
+  .next-up {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 20px 24px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border: 2px solid var(--hot);
+    margin-bottom: 24px;
+  }
+
+  .next-up .pill {
+    background: var(--hot);
+    color: white;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .next-up .detail { flex: 1; min-width: 0; }
+  .next-up .detail strong { display: block; font-size: 16px; color: var(--plum); }
+  .next-up .detail span { font-size: 14px; color: var(--plum-soft); }
+
+  .empty-state {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 32px 24px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+
+  .empty-state p { margin: 0; font-size: 16px; color: var(--plum-soft); }
+
+  .filters { display: flex; gap: 8px; margin: 8px 0 24px; flex-wrap: wrap; }
+
+  .filter-btn {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 9px 18px;
+    border-radius: 999px;
+    border: 2px solid var(--line);
+    background: transparent;
+    color: var(--plum-soft);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .filter-btn:hover { border-color: var(--hot); }
+  .filter-btn.active { background: var(--plum); border-color: var(--plum); color: white; }
+
+  .assignment {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(110, 17, 72, 0.06);
+    border-left: 6px solid var(--line);
+    transition: transform 0.12s ease;
+    position: relative;
+  }
+
+  .assignment:hover { transform: translateX(2px); }
+
+  .assignment.status-overdue { border-left-color: var(--hot); }
+  .assignment.status-soon { border-left-color: var(--amber); }
+  .assignment.status-today { border-left-color: var(--amber-dark); }
+  .assignment.status-later { border-left-color: var(--teal); }
+  .assignment.status-done { border-left-color: var(--line); opacity: 0.55; }
+  .assignment.status-done .title { text-decoration: line-through; }
+
+  @keyframes glowAmberSoft {
+    0%, 100% { box-shadow: 0 2px 8px rgba(110,17,72,0.06), 0 0 0px rgba(255,176,32,0); }
+    50% { box-shadow: 0 2px 8px rgba(110,17,72,0.06), 0 0 14px rgba(255,176,32,0.35); }
+  }
+  @keyframes glowAmberBright {
+    0%, 100% { box-shadow: 0 2px 8px rgba(110,17,72,0.06), 0 0 10px rgba(255,176,32,0.5); }
+    50% { box-shadow: 0 2px 8px rgba(110,17,72,0.06), 0 0 26px rgba(255,176,32,0.85); }
+  }
+  @keyframes glowRedSoft {
+    0%, 100% { box-shadow: 0 2px 8px rgba(110,17,72,0.06), 0 0 0px rgba(255,46,147,0); }
+    50% { box-shadow: 0 2px 8px rgba(110,17,72,0.06), 0 0 16px rgba(255,46,147,0.4); }
+  }
+
+  .assignment.status-soon { animation: glowAmberSoft 2.6s ease-in-out infinite; }
+  .assignment.status-today { animation: glowAmberBright 1.7s ease-in-out infinite; }
+  .assignment.status-overdue { animation: glowRedSoft 2.4s ease-in-out infinite; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .assignment, .freshness-dot { animation: none !important; }
+  }
+
+  .check {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: white;
+    font-size: 14px;
+    color: white;
+    user-select: none;
+    position: relative;
+  }
+
+  .assignment.status-done .check { background: var(--teal); border-color: var(--teal); }
+
+  .check.pop { animation: checkPop 0.4s ease; }
+  @keyframes checkPop { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 100% { transform: scale(1); } }
+
+  .info { flex: 1; min-width: 0; }
+  .title { font-size: 15px; font-weight: 600; color: var(--plum); margin: 0 0 2px; overflow-wrap: break-word; }
+  .due { font-size: 13px; color: var(--plum-soft); }
+  .course-tag { font-size: 12px; color: var(--hot-dark); font-weight: 600; }
+
+  .badge {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .badge.status-overdue { background: #FFE1EE; color: var(--hot-dark); }
+  .badge.status-soon { background: #FFF1D6; color: var(--amber-dark); }
+  .badge.status-today { background: #FFE3B0; color: var(--amber-dark); }
+  .badge.status-later { background: #D8F7F0; color: var(--teal-dark); }
+  .badge.status-done { background: #F1F1F1; color: #999; }
+
+  footer { text-align: center; margin-top: 48px; font-size: 13px; color: var(--plum-soft); }
+
+  .confetti-piece { position: fixed; width: 8px; height: 8px; border-radius: 2px; pointer-events: none; z-index: 999; }
+
+  @keyframes confettiBurst {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; }
+  }
+
+  .egg-spot {
+    display: block;
+    width: 22px;
+    height: 22px;
+    margin: 60px auto 0;
+    opacity: 0.15;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  }
+
+  .egg-spot:hover { opacity: 0.4; }
+
+  .egg-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--plum);
+    color: white;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 14px;
+    padding: 12px 22px;
+    border-radius: 999px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 1000;
+  }
+
+  .egg-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+  <div id="loginScreen">
+    <div class="login-card">
+      <h1>Assignment Tracker</h1>
+      <p>Sign in to see what's due.</p>
+      <form id="loginForm">
+        <input type="email" id="loginEmail" placeholder="Email" required autocomplete="username">
+        <input type="password" id="loginPassword" placeholder="Password" required autocomplete="current-password">
+        <button type="submit">Sign in</button>
+        <div class="login-error" id="loginError"></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="appContent" class="hidden">
+    <div class="wrap">
+      <header>
+        <div class="top-row">
+          <p class="kicker">Assignment Tracker</p>
+          <div class="nav-links">
+            <a class="nav-link" href="classes.html">Classes & grades</a>
+            <a class="nav-link" href="update.html">Update data →</a>
+            <button id="signOutBtn">Sign out</button>
+          </div>
+        </div>
+        <h1>What's due, and when.</h1>
+        <div id="freshnessSlot"></div>
+        <div id="nextUpSlot"></div>
+      </header>
+
+      <div class="filters" id="filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="overdue">Overdue</button>
+        <button class="filter-btn" data-filter="soon">Due soon</button>
+        <button class="filter-btn" data-filter="done">Done</button>
+      </div>
+
+      <div id="list"></div>
+
+      <a class="egg-spot" id="eggSpot" title="">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="2" width="16" height="20" rx="8" fill="#FFD84D"/>
+          <rect x="7" y="9" width="10" height="3.5" rx="1.75" fill="#3A3A3A"/>
+          <circle cx="9.5" cy="10.75" r="1.5" fill="white"/>
+          <circle cx="14.5" cy="10.75" r="1.5" fill="white"/>
+          <circle cx="9.5" cy="10.75" r="0.6" fill="#222"/>
+          <circle cx="14.5" cy="10.75" r="0.6" fill="#222"/>
+          <path d="M9 15 Q12 17.5 15 15" stroke="#3A3A3A" stroke-width="1" fill="none" stroke-linecap="round"/>
+        </svg>
+      </a>
+
+      <footer>Live data from Firestore &middot; updates automatically after each scrape</footer>
+    </div>
+  </div>
+
+  <div class="egg-toast" id="eggToast">you found the little guy. carry on.</div>
+
+<script src="firebase-init.js"></script>
+<script>
+let data = [];
+let currentFilter = "all";
+let unsubscribeAssignments = null;
+let unsubscribeMeta = null;
+
+function daysUntil(dateStr) {
+  return (new Date(dateStr) - new Date()) / (1000 * 60 * 60 * 24);
+}
+
+function getStatus(item) {
+  if (item.done) return "done";
+  const d = daysUntil(item.due);
+  if (d < 0) return "overdue";
+  if (d < 1) return "today";
+  if (d <= 3) return "soon";
+  return "later";
+}
+
+function statusLabel(status, item) {
+  const d = Math.ceil(daysUntil(item.due));
+  if (status === "done") return "Done";
+  if (status === "overdue") return `${Math.abs(d)}d overdue`;
+  if (status === "today") return "Due today";
+  if (d === 1) return "Due tomorrow";
+  return `Due in ${d}d`;
+}
+
+function formatDue(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) +
+    ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function render() {
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+
+  const filtered = data.filter(item => {
+    const status = getStatus(item);
+    if (currentFilter === 'all') return status !== 'done';
+    if (currentFilter === 'done') return status === 'done';
+    if (currentFilter === 'overdue') return status === 'overdue';
+    if (currentFilter === 'soon') return status === 'soon' || status === 'today' || status === 'overdue';
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-state"><p>Nothing here. Nice.</p></div>';
+    renderNextUp();
+    return;
+  }
+
+  filtered
+    .sort((a, b) => new Date(a.due) - new Date(b.due))
+    .forEach(item => {
+      const status = getStatus(item);
+      const row = document.createElement('div');
+      row.className = `assignment status-${status}`;
+      row.innerHTML = `
+        <div class="check">${item.done ? '✓' : ''}</div>
+        <div class="info">
+          <p class="course-tag">${escapeHtml(item.course)}</p>
+          <p class="title">${escapeHtml(item.title)}</p>
+          <p class="due">${formatDue(item.due)}</p>
+        </div>
+        <span class="badge status-${status}">${statusLabel(status, item)}</span>
+      `;
+
+      const checkEl = row.querySelector('.check');
+      checkEl.addEventListener('click', (e) => {
+        const wasDone = item.done;
+        const newDone = !wasDone;
+        db.collection('assignments').doc(item.id).update({ done: newDone });
+        if (!wasDone) {
+          burstConfetti(e.clientX, e.clientY);
+          checkEl.classList.add('pop');
+        }
+      });
+
+      list.appendChild(row);
+    });
+
+  renderNextUp();
+}
+
+function renderNextUp() {
+  const slot = document.getElementById('nextUpSlot');
+  const upcoming = data
+    .filter(item => !item.done)
+    .sort((a, b) => new Date(a.due) - new Date(b.due))[0];
+
+  if (!upcoming) { slot.innerHTML = ''; return; }
+
+  const status = getStatus(upcoming);
+  slot.innerHTML = `
+    <div class="next-up">
+      <span class="pill">Next up</span>
+      <div class="detail">
+        <strong>${escapeHtml(upcoming.title)}</strong>
+        <span>${escapeHtml(upcoming.course)} &middot; ${formatDue(upcoming.due)}</span>
+      </div>
+      <span class="badge status-${status}">${statusLabel(status, upcoming)}</span>
+    </div>
+  `;
+}
+
+function renderFreshness(lastScraped) {
+  const slot = document.getElementById('freshnessSlot');
+  if (!lastScraped) {
+    slot.innerHTML = `<div class="freshness"><span class="freshness-dot" style="background:#ccc"></span>No scrape recorded yet</div>`;
+    return;
+  }
+  const hoursAgo = (Date.now() - lastScraped.getTime()) / (1000 * 60 * 60);
+  const stale = hoursAgo > 24;
+  const label = hoursAgo < 1 ? 'Updated less than an hour ago' : `Updated ${Math.floor(hoursAgo)}h ago`;
+  slot.innerHTML = `<div class="freshness ${stale ? 'stale' : ''}"><span class="freshness-dot"></span>${label}${stale ? ' — data may be old!' : ''}</div>`;
+}
+
+function burstConfetti(x, y) {
+  const colors = ['#FF2E93', '#FFB020', '#00BFA0', '#6E1148', '#FFD84D'];
+  for (let i = 0; i < 14; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 40 + Math.random() * 60;
+    piece.style.left = x + 'px';
+    piece.style.top = y + 'px';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.setProperty('--dx', Math.cos(angle) * distance + 'px');
+    piece.style.setProperty('--dy', Math.sin(angle) * distance + 'px');
+    piece.style.setProperty('--rot', (Math.random() * 360) + 'deg');
+    piece.style.animation = 'confettiBurst 0.7s ease-out forwards';
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 700);
+  }
+}
+
+document.getElementById('filters').addEventListener('click', (e) => {
+  if (!e.target.classList.contains('filter-btn')) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  currentFilter = e.target.dataset.filter;
+  render();
+});
+
+document.getElementById('eggSpot').addEventListener('click', (e) => {
+  e.preventDefault();
+  const toast = document.getElementById('eggToast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+});
+
+function startListeners() {
+  if (unsubscribeAssignments) unsubscribeAssignments();
+  if (unsubscribeMeta) unsubscribeMeta();
+
+  unsubscribeAssignments = db.collection('assignments').onSnapshot(snapshot => {
+    data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    render();
+  });
+
+  unsubscribeMeta = db.collection('meta').doc('status').onSnapshot(doc => {
+    if (doc.exists && doc.data().last_scraped) {
+      renderFreshness(doc.data().last_scraped.toDate());
+    } else {
+      renderFreshness(null);
+    }
+  });
+}
+
+initAuthGate(startListeners);
+</script>
+</body>
+</html>
